@@ -1,0 +1,6 @@
+*.pyc
+*.pyo
+
+# Code repositories present for reference.
+libpndman
+qtpndman
