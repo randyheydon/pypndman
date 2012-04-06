@@ -14,6 +14,25 @@ c.CDLL(find_library('jansson'), mode=c.RTLD_GLOBAL)
 p = c.CDLL('libpndman.so')
 
 
+# Defined string lengths.
+# FIXME: These two are system dependent.  Values here are for my Linux desktop.
+s_PATH_MAX = c.c_char * 4096
+s_LINE_MAX = c.c_char * 2048
+
+s_PND_ID = c.c_char * 256
+s_PND_NAME = c.c_char * 24
+s_PND_VER = c.c_char * 8
+s_PND_STR = s_LINE_MAX
+s_PND_SHRT_STR = c.c_char * 24
+s_PND_MD5 = c.c_char * 33
+s_PND_INFO = s_LINE_MAX
+s_PND_PATH = s_PATH_MAX
+s_REPO_URL = s_LINE_MAX
+s_REPO_NAME = c.c_char * 24
+s_REPO_VERSION = c.c_char * 8
+s_HANDLE_NAME = s_PND_ID
+
+
 # Enums.
 
 sync_flags = c.c_int
@@ -41,86 +60,84 @@ PND_EXEC_IGNORE = 2
 # Structs.
 class version(c.Structure):
     _fields_ = [
-        # NOTE: c_char_p may be wrong, since each of these is defined as a
-        # fixed-length char array, rather than a straight-up pointer.
-        ('major', c.c_char_p),
-        ('minor', c.c_char_p),
-        ('release', c.c_char_p),
-        ('build', c.c_char_p),
+        ('major', s_PND_VER),
+        ('minor', s_PND_VER),
+        ('release', s_PND_VER),
+        ('build', s_PND_VER),
         ('type', version_type),
     ]
 
 class exec_(c.Structure): # exec is a Python keyword; therefore, exec_.
     _fields_ = [
         ('background', c.c_int),
-        ('startdir', c.c_char_p),
+        ('startdir', s_PND_PATH),
         ('standalone', c.c_int),
-        ('command', c.c_char_p),
-        ('arguments', c.c_char_p),
+        ('command', s_PND_PATH),
+        ('arguments', s_PND_PATH),
         ('x11', exec_x11),
     ]
 
 class author(c.Structure):
     _fields_ = [
-        ('name', c.c_char_p),
-        ('website', c.c_char_p),
-        ('email', c.c_char_p),
+        ('name', s_PND_NAME),
+        ('website', s_PND_STR),
+        ('email', s_PND_STR),
     ]
 
 class info(c.Structure):
     _fields_ = [
-        ('name', c.c_char_p),
-        ('type', c.c_char_p),
-        ('src', c.c_char_p),
+        ('name', s_PND_NAME),
+        ('type', s_PND_SHRT_STR),
+        ('src', s_PND_STR),
     ]
 
 class translated(c.Structure): pass
 translated_p = c.POINTER(translated)
 translated._fields = [
-    ('lang', c.c_char_p),
-    ('string', c.c_char_p),
+    ('lang', s_PND_SHRT_STR),
+    ('string', s_PND_STR),
     ('next', translated_p),
 ]
 
 class license(c.Structure): pass
 license_p = c.POINTER(license)
 license._fields = [
-    ('name', c.c_char_p),
-    ('url', c.c_char_p),
-    ('sourcecodeurl', c.c_char_p),
+    ('name', s_PND_STR),
+    ('url', s_PND_STR),
+    ('sourcecodeurl', s_PND_STR),
     ('next', license_p),
 ]
 
 class previewpic(c.Structure): pass
 previewpic_p = c.POINTER(previewpic)
 previewpic._fields_ = [
-    ('src', c.c_char_p),
+    ('src', s_PND_PATH),
     ('next', previewpic_p),
 ]
 
 class association(c.Structure): pass
 association_p = c.POINTER(association)
 association._fields_ = [
-    ('name', c.c_char_p),
-    ('filetype', c.c_char_p),
-    ('exec', c.c_char_p),
+    ('name', s_PND_STR),
+    ('filetype', s_PND_SHRT_STR),
+    ('exec', s_PND_PATH),
     ('next', association_p),
 ]
 
 class category(c.Structure): pass
 category_p = c.POINTER(category)
 category._fields_ = [
-    ('main', c.c_char_p),
-    ('sub', c.c_char_p),
+    ('main', s_PND_SHRT_STR),
+    ('sub', s_PND_SHRT_STR),
     ('next', category_p),
 ]
 
 class application(c.Structure): pass
 application_p = c.POINTER(application)
 application._fields_ = [
-    ('id', c.c_char_p),
-    ('appdata', c.c_char_p),
-    ('icon', c.c_char_p),
+    ('id', s_PND_ID),
+    ('appdata', s_PND_PATH),
+    ('icon', s_PND_PATH),
     ('frequency', c.c_int),
 
     ('author', author),
@@ -142,13 +159,13 @@ application._fields_ = [
 class package(c.Structure): pass
 package_p = c.POINTER(package)
 package._fields_ = [
-    ('path', c.c_char_p),
-    ('id', c.c_char_p),
-    ('icon', c.c_char_p),
-    ('info', c.c_char_p),
-    ('md5', c.c_char_p),
-    ('url', c.c_char_p),
-    ('vendor', c.c_char_p),
+    ('path', s_PND_PATH),
+    ('id', s_PND_ID),
+    ('icon', s_PND_PATH),
+    ('info', s_PND_INFO),
+    ('md5', s_PND_MD5),
+    ('url', s_PND_STR),
+    ('vendor', s_PND_NAME),
     ('size', c.c_size_t),
     ('modified_time', time_t),
     ('rating', c.c_int),
@@ -163,8 +180,8 @@ package._fields_ = [
     ('previewpic', previewpic_p),
     ('category', category_p),
 
-    ('repository', c.c_char_p),
-    ('mount', c.c_char_p),
+    ('repository', s_PND_STR),
+    ('mount', s_PND_PATH),
     ('update', package_p),
     ('next_installed', package_p),
     ('next', package_p),
@@ -173,10 +190,10 @@ package._fields_ = [
 class repository(c.Structure): pass
 repository_p = c.POINTER(repository)
 repository._fields_ = [
-    ('url', c.c_char_p),
-    ('name', c.c_char_p),
-    ('updates', c.c_char_p),
-    ('version', c.c_char_p),
+    ('url', s_REPO_URL),
+    ('name', s_REPO_NAME),
+    ('updates', s_REPO_URL),
+    ('version', s_REPO_VERSION),
     ('timestamp', time_t),
 
     ('pnd', package_p),
@@ -186,11 +203,11 @@ repository._fields_ = [
 class device(c.Structure): pass
 device_p = c.POINTER(device)
 device._fields_ = [
-    ('mount', c.c_char_p),
-    ('device', c.c_char_p),
+    ('mount', s_PATH_MAX),
+    ('device', s_PATH_MAX),
     ('size', c.c_size_t), ('free', c.c_size_t), ('available', c.c_size_t),
 
-    ('appdata', c.c_char_p),
+    ('appdata', s_PATH_MAX),
     ('next', device_p), ('prev', device_p),
 ]
 
@@ -215,8 +232,8 @@ class curl_progress(c.Structure):
 
 class handle(c.Structure):
     _fields_ = [
-        ('name', c.c_char_p),
-        ('error', c.c_char_p),
+        ('name', s_HANDLE_NAME),
+        ('error', s_LINE_MAX),
         ('pnd', package_p),
         ('device', device_p),
         ('flags', c.c_uint),
@@ -230,7 +247,7 @@ handle_p = c.POINTER(handle)
 
 class sync_handle(c.Structure):
     _fields_ = [
-        ('error', c.c_char_p),
+        ('error', s_LINE_MAX),
         ('repository', repository_p),
 
         ('flags', c.c_uint),
